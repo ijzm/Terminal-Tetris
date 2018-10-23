@@ -1,13 +1,15 @@
 CFLAGS= -g -Wall
 CC=gcc
-TARGET=Tetris.exe
+
 
 ifeq ($(OS),Windows_NT)
 	RM = del /Q
 	LIBS=-lpdcurses
+	TARGET=Tetris.exe
 else
 	LIBS=-lncurses
 	RM = rm -f
+	TARGET=Tetris
 endif
 
 .PHONY: default all clean
