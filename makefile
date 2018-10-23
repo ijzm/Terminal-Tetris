@@ -1,12 +1,11 @@
 CFLAGS= -g -Wall
 CC=gcc
+TARGET=Tetris.exe
 
 ifeq ($(OS),Windows_NT)
-	TARGET=Tetris.exe
 	RM = del /Q
 	LIBS=-lpdcurses
 else
-	TARGET=$(shell basename $(CURDIR))
 	LIBS=-lncurses
 	RM = rm -f
 endif
