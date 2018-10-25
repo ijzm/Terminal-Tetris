@@ -48,14 +48,23 @@ int init() {
 
 void setupColors() {
 	start_color();
-	init_color(1, 0,1,1);
+	init_color(COLOR_BLACK, 0, 0, 0);
+	init_color(COLOR_CYAN, 0, 1000, 1000);
+	init_color(COLOR_YELLOW, 1000, 1000, 0);
+	init_color(COLOR_BLUE, 0, 0, 1000);
+	init_color(COLOR_RED, 1000, 650, 0); //ORANGE
+	init_color(COLOR_GREEN, 0, 1000, 0);
+	init_color(COLOR_WHITE, 1000, 1000, 1000);
+	init_color(COLOR_MAGENTA, 1000, 0, 1000);
+	init_color(11, 1000, 0, 0); //RED
+
 	init_pair(0, COLOR_WHITE, COLOR_BLACK);
 	init_pair(1, COLOR_BLACK, COLOR_CYAN);    // I
 	init_pair(2, COLOR_BLACK, COLOR_YELLOW);  // O
 	init_pair(3, COLOR_BLACK, COLOR_BLUE);    // L  
 	init_pair(4, COLOR_BLACK, COLOR_RED);     // J TODO: Orange
 	init_pair(5, COLOR_BLACK, COLOR_GREEN);   // S
-	init_pair(6, COLOR_BLACK, COLOR_WHITE);   // Z
+	init_pair(6, COLOR_BLACK, 11);   // Z TODO: RED
 	init_pair(7, COLOR_BLACK, COLOR_MAGENTA); // T
 }
 
@@ -129,8 +138,9 @@ void printBoard() {
 	for (int x = -1; x < BOARD_WIDTH+1; ++x) {
 		for (int y = -1; y < BOARD_HEIGHT+1; ++y) {
 			if(x == -1 || y == -1 || x == BOARD_WIDTH || y == BOARD_HEIGHT){
-				mvaddch(y, anchor + 2 * x    , ACS_BLOCK | COLOR_PAIR(0));
-				mvaddch(y, anchor + 2 * x +1 , ACS_BLOCK | COLOR_PAIR(0));
+				mvaddch(y, anchor + 2 * x    , ' ' | A_REVERSE | COLOR_PAIR(0));
+				mvaddch(y, anchor + 2 * x +1 , ' ' | A_REVERSE | COLOR_PAIR(0));
+				//CHANGE ACS_BLOCK
 				continue;
 			}
 
@@ -139,9 +149,7 @@ void printBoard() {
 			mvaddch(y, anchor + 2 * x + 1, ' ' | COLOR_PAIR(board[x][y]));
 		}
 	}
-
-	//mvprintw(0, COLS/2 + BOARD_WIDTH + 3, "%d", CurrentPiece.piece);
-	//mvprintw(1, COLS/2 + BOARD_WIDTH + 3, "%d", score);
+	mvprintw(8, COLS/2 + BOARD_WIDTH + 4, "Score: %d", score);
 }
 
 void printNext() {
@@ -149,8 +157,8 @@ void printNext() {
 	for (int x = -1; x < 4+1; ++x) {
 		for (int y = -1; y < 4+1; ++y) {
 			if(x == -1 || y == -1 || x == 4 || y == 4){
-				mvaddch(y + 2, anchor + 2 * x    , ACS_BLOCK | COLOR_PAIR(0));
-				mvaddch(y + 2, anchor + 2 * x +1 , ACS_BLOCK | COLOR_PAIR(0));
+				mvaddch(y + 2, anchor + 2 * x    , ' ' | A_REVERSE | COLOR_PAIR(0));
+				mvaddch(y + 2, anchor + 2 * x +1 , ' ' | A_REVERSE | COLOR_PAIR(0));
 				continue;
 			}
 			if(SavedPiece != -1) {
@@ -166,7 +174,7 @@ void printNext() {
 
 void close() {
 	endwin();
-	printf("Score: %d", score);
+	printf("Score: %d \n", score);
 }
 
 void addPiece() {
