@@ -68,15 +68,25 @@ void setupColors() {
 	init_pair(7, COLOR_BLACK, COLOR_MAGENTA); // T
 }
 
+clock_t t;
+
 void run() {
 	CurrentPiece = getRandomPiece();
 	addPiece();
+
+	t = clock();
 	while(1) {
 		if(handleInput()) {
 			break;
 		}
 		printBoard();
 		printNext();
+		
+		if(((float)(clock() - t))/CLOCKS_PER_SEC > 0.7) { //Calculate Delta Time
+			t = clock();
+			moveDown();
+		}
+
 		refresh();
 	}
 	close();
@@ -124,6 +134,7 @@ int handleInput() {
 
 		case ' ':
 		moveBottom();
+		t = clock();
 		break;
 
 		default:
