@@ -14,7 +14,7 @@ void addPiece();
 void removePiece();
 int removeLines();
 void moveHorizontal(short dir);
-void moveDown();
+bool moveDown();
 void moveBottom();
 bool checkDown();
 void rotatePiece();

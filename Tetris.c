@@ -21,6 +21,7 @@
 WINDOW* win;
 int score;
 short board[BOARD_WIDTH][BOARD_HEIGHT];
+clock_t t;
 
 static struct piece CurrentPiece;
 static int SavedPiece = -1;
@@ -29,11 +30,11 @@ static int SavedPiece = -1;
 int init() {
 	win = initscr();
 	
-	cbreak();
-	curs_set(0);
-	noecho();
-	keypad(stdscr, TRUE);
-	nodelay(stdscr, TRUE);
+	cbreak();               //
+	curs_set(0);            //Removes Mouse Cursor
+	noecho();               //
+	keypad(stdscr, TRUE);   //
+	nodelay(stdscr, TRUE);  //
 
 	setupColors();
 
@@ -45,6 +46,7 @@ int init() {
 
 void setupColors() {
 	start_color();
+	//If terminal allows:
 	init_color(COLOR_BLACK, 0, 0, 0);
 	init_color(COLOR_CYAN, 0, 1000, 1000);
 	init_color(COLOR_YELLOW, 1000, 1000, 0);
@@ -65,7 +67,6 @@ void setupColors() {
 	init_pair(7, COLOR_BLACK, COLOR_MAGENTA); // T
 }
 
-clock_t t;
 
 void run() {
 	CurrentPiece = getRandomPiece();
@@ -81,7 +82,9 @@ void run() {
 		
 		if(((float)(clock() - t))/CLOCKS_PER_SEC > 0.7) { //Calculate Delta Time
 			t = clock();
-			moveDown();
+			if(moveDown()) {
+				break;
+			}
 		}
 
 		refresh();
@@ -182,6 +185,7 @@ void printNext() {
 
 void close() {
 	endwin();
+	printf("Game Over\n");
 	printf("Score: %d \n", score);
 }
 
@@ -225,16 +229,21 @@ void moveHorizontal(short dir) {
 	addPiece();
 }
 
-void moveDown() {
+bool moveDown() {
 		removePiece();
 		CurrentPiece.position.y++;
 		if(checkOverlap()) {
 			CurrentPiece.position.y--;
 			addPiece();
-			CurrentPiece = getRandomPiece();
 			score += removeLines();
+
+			CurrentPiece = getRandomPiece();
+			if(checkOverlap()) {
+				return 1;
+			}
 		}
 		addPiece();
+		return 0;
 }
 
 void moveBottom() {
