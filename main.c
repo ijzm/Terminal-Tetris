@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -6,8 +5,7 @@
 
 
 int main(int argc, char const *argv[]) {
-	time_t t;
-	srand((unsigned) time(&t));
+	srand((unsigned) time(NULL));
 	if(init()) {
 		run();
 	}
