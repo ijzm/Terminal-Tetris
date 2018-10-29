@@ -18,52 +18,53 @@
 
 
 //Global Variables
-WINDOW* win;
-int score;
-short board[BOARD_WIDTH][BOARD_HEIGHT];
-clock_t t;
+WINDOW* win;                            //Main Window
+short board[BOARD_WIDTH][BOARD_HEIGHT]; //Array containing board information
+int score;                              //Current Score
+bool isPaused = false;                  //Pause Variable
+clock_t t;                              //Time, for delta time calculations
 
-static struct piece CurrentPiece;
-static int SavedPiece = -1;
+static struct piece CurrentPiece;       //Reference to the current piece
+static short SavedPiece = -1;           //ID of the Saved Piece. Set to -1 if there is 
+                                        //no piece saved
 
-
+//Initialize variables. Set up curses
 int init() {
-	win = initscr();
+	win = initscr();        //Setup Screen. Save it to win
 	
-	cbreak();               //
+	cbreak();               //Allows input to be inmediately avalible
 	curs_set(0);            //Removes Mouse Cursor
-	noecho();               //
-	keypad(stdscr, TRUE);   //
-	nodelay(stdscr, TRUE);  //
+	noecho();               //Removes the printing of input
+	keypad(stdscr, TRUE);   //Allows getch to return special keys
+	nodelay(stdscr, TRUE);  //Makes getch non-blocking
 
-	setupColors();
+	setupColors();          //Loads up the colors to be used
 
-	clear();
-	refresh();
-
-	return 1;
+	return 1;               //Tells main that the initialization finished
 }
 
 void setupColors() {
 	start_color();
-	//If terminal allows:
-	init_color(COLOR_BLACK, 0, 0, 0);
-	init_color(COLOR_CYAN, 0, 1000, 1000);
-	init_color(COLOR_YELLOW, 1000, 1000, 0);
-	init_color(COLOR_BLUE, 0, 0, 1000);
-	init_color(COLOR_RED, 1000, 650, 0); //ORANGE
-	init_color(COLOR_GREEN, 0, 1000, 0);
-	init_color(COLOR_WHITE, 1000, 1000, 1000);
-	init_color(COLOR_MAGENTA, 1000, 0, 1000);
-	init_color(11, 1000, 0, 0); //RED
+	
+	if(can_change_color()) {
+		init_color(COLOR_BLACK, 0, 0, 0);
+		init_color(COLOR_CYAN, 0, 1000, 1000);
+		init_color(COLOR_YELLOW, 1000, 1000, 0);
+		init_color(COLOR_BLUE, 0, 0, 1000);
+		init_color(11, 1000, 650, 0);              //ORANGE
+		init_color(COLOR_GREEN, 0, 1000, 0);
+		init_color(COLOR_WHITE, 1000, 1000, 1000);
+		init_color(COLOR_MAGENTA, 1000, 0, 1000);
+		init_color(COLOR_RED, 1000, 0, 0);
+	}
 
-	init_pair(0, COLOR_WHITE, COLOR_BLACK);
+	init_pair(0, COLOR_WHITE, COLOR_BLACK);   
 	init_pair(1, COLOR_BLACK, COLOR_CYAN);    // I
 	init_pair(2, COLOR_BLACK, COLOR_YELLOW);  // O
 	init_pair(3, COLOR_BLACK, COLOR_BLUE);    // L  
-	init_pair(4, COLOR_BLACK, COLOR_RED);     // J TODO: Orange
+	init_pair(4, COLOR_BLACK, 11);            // J 
 	init_pair(5, COLOR_BLACK, COLOR_GREEN);   // S
-	init_pair(6, COLOR_BLACK, 11);   // Z TODO: RED
+	init_pair(6, COLOR_BLACK, COLOR_RED);     // Z 
 	init_pair(7, COLOR_BLACK, COLOR_MAGENTA); // T
 }
 
@@ -73,39 +74,50 @@ void run() {
 	addPiece();
 
 	t = clock();
+	//Main Game Loop
 	while(1) {
+		//Gets user Input
 		if(handleInput()) {
 			break;
 		}
-		printBoard();
-		printNext();
-		
-		if(((float)(clock() - t))/CLOCKS_PER_SEC > 0.7) { //Calculate Delta Time
-			t = clock();
-			if(moveDown()) {
-				break;
-			}
-		}
+		if(!isPaused) {
+			printBoard();
+			printNext();
 
-		refresh();
+			//Calculate Delta Time
+			//TODO: Make the time dynamic
+			if(((float)(clock() - t))/CLOCKS_PER_SEC > 0.7) { 
+				t = clock();
+
+				//Check if you loose and move tetromino down
+				if(moveDown()) { 
+					break;
+				}
+			}
+			refresh();
+		}
 	}
 	close();
 }
 
+//Handles Input. Returns 1 if q is pressed, to allow exiting of the program
 int handleInput() {
 	switch(getch()) {
 		case KEY_UP:
 		case 'w':
 		rotatePiece();
 		break;
+
 		case KEY_DOWN:
 		case 's':
 		moveDown();
 		break;
+
 		case KEY_LEFT:
 		case 'a':
 		moveHorizontal(-1);
 		break;
+
 		case KEY_RIGHT:
 		case 'd':
 		moveHorizontal(1);
@@ -115,35 +127,25 @@ int handleInput() {
 		return 1;
 		break;
 
-		case 'z': {
-			if(SavedPiece == -1) {
-				removePiece();
-				SavedPiece = CurrentPiece.piece;
-				CurrentPiece = getRandomPiece();
-				addPiece();
-			} else {
-				removePiece();
-				int temp = SavedPiece;
-				SavedPiece = CurrentPiece.piece;
-				CurrentPiece = getRandomPiece();
-				CurrentPiece.piece = temp;
-				addPiece();
-			}
-		}
+		case 'z':
+		savePiece();
 		break;
 
 		case ' ':
 		moveBottom();
+		break;
 
+		case 'p':
+		isPaused = !isPaused;
 		break;
 
 		default:
 		break;
-	}
-	
+	}	
 	return 0;
 }
 
+//Board Rendering
 void printBoard() {
 	int anchor = COLS/2 - BOARD_WIDTH;
 	for (int x = -1; x < BOARD_WIDTH+1; ++x) {
@@ -151,7 +153,6 @@ void printBoard() {
 			if(x == -1 || y == -1 || x == BOARD_WIDTH || y == BOARD_HEIGHT){
 				mvaddch(y, anchor + 2 * x    , ' ' | A_REVERSE | COLOR_PAIR(0));
 				mvaddch(y, anchor + 2 * x +1 , ' ' | A_REVERSE | COLOR_PAIR(0));
-				//CHANGE ACS_BLOCK
 				continue;
 			}
 
@@ -163,6 +164,7 @@ void printBoard() {
 	mvprintw(8, COLS/2 + BOARD_WIDTH + 4, "Score: %d", score);
 }
 
+//UI Rendering
 void printNext() {
 	int anchor = COLS/2 + BOARD_WIDTH + 6;
 	for (int x = -1; x < 4+1; ++x) {
@@ -173,22 +175,21 @@ void printNext() {
 				continue;
 			}
 			if(SavedPiece != -1) {
-					mvaddch(y + 2, anchor + 2 * x    , ' ' | COLOR_PAIR(tetris[SavedPiece][0][x][y] * (SavedPiece+1)));	
-					mvaddch(y + 2, anchor + 2 * x + 1, ' ' | COLOR_PAIR(tetris[SavedPiece][0][x][y] * (SavedPiece+1)));
+				mvaddch(y + 2, anchor + 2 * x    , ' ' | COLOR_PAIR(tetris[SavedPiece][0][x][y] * (SavedPiece+1)));	
+				mvaddch(y + 2, anchor + 2 * x + 1, ' ' | COLOR_PAIR(tetris[SavedPiece][0][x][y] * (SavedPiece+1)));
 			}
 		}
 	}
-
-	//mvprintw(0, COLS/2 + BOARD_WIDTH + 3, "%d", CurrentPiece.piece);
-	//mvprintw(1, COLS/2 + BOARD_WIDTH + 3, "%d", score);
 }
 
+//Finishes curses. Prints Score
 void close() {
 	endwin();
-	printf("Game Over\n");
+	printf("Game Over!\n");
 	printf("Score: %d \n", score);
 }
 
+//Adds current piece information to the board array
 void addPiece() {
 	for (int y = 0; y < 4; ++y)	{
 		for (int x = 0; x < 4; ++x) {
@@ -200,6 +201,7 @@ void addPiece() {
 	}
 }
 
+//Removes current piece information from the board array
 void removePiece() {
 	for (int y = 0; y < 4; ++y)	{
 		for (int x = 0; x < 4; ++x) {
@@ -211,6 +213,7 @@ void removePiece() {
 	}
 }
 
+//Logic for rotating a Tetromino
 void rotatePiece() {
 	removePiece();
 	CurrentPiece.rotation = wrap(0, 3, CurrentPiece.rotation, 1);
@@ -220,6 +223,7 @@ void rotatePiece() {
 	addPiece();
 }
 
+//Change the x position of the current piece
 void moveHorizontal(short dir) {
 	removePiece();
 	CurrentPiece.position.x += dir;
@@ -229,52 +233,53 @@ void moveHorizontal(short dir) {
 	addPiece();
 }
 
+//Change the y position of the current piece.
+//If the piece has reached the bottom, or touches another piece
+//It generaets a new random piece and calls the removeLines() function
 bool moveDown() {
-		removePiece();
-		CurrentPiece.position.y++;
-		if(checkOverlap()) {
-			CurrentPiece.position.y--;
-			addPiece();
-			score += removeLines();
-
-			CurrentPiece = getRandomPiece();
-			if(checkOverlap()) {
-				return 1;
-			}
-		}
+	removePiece();
+	CurrentPiece.position.y++;
+	if(checkOverlap()) {
+		CurrentPiece.position.y--;
 		addPiece();
-		return 0;
+		score += removeLines();
+
+		CurrentPiece = getRandomPiece();
+		if(checkOverlap()) {
+			return 1;
+		}
+	}
+	addPiece();
+	return 0;
 }
 
+//Moves the current piece to the lowest position posible
 void moveBottom() {
+	removePiece();
 	while(1) {
-		removePiece();
 		CurrentPiece.position.y++;
 		if(checkOverlap()) {
 			CurrentPiece.position.y--;
 			break;
 		}
-		addPiece();
 	}
 	addPiece();
 }
 
-bool checkDown() {
-	bool isBottom = false;
-	return isBottom;
-}
-
+//Checks and removes finished lines. Returns amount of lines removed
 int removeLines() {
 	int lines = 0;
 	for (int y = 0; y < BOARD_HEIGHT; ++y) {
 		bool isCleared = true;
 
+		//Checks for empty spots in a row. If it cant find any isCleared stays true
 		for (int x = 0; x < BOARD_WIDTH; ++x) {
 			if(board[x][y] == 0) {
 				isCleared = false;
 			}
 		}
 
+		//If the current line is full, shift all lines above it one y unit down
 		if(isCleared) {
 			for (int tempY = y; tempY > 0; --tempY)	{
 				for (int x = 0; x < BOARD_WIDTH; ++x) {
@@ -284,30 +289,45 @@ int removeLines() {
 			lines++;
 		}
 	}
-
 	return lines;
 }
 
+//Checks if the current piece position. If it overlaps an old piece/edges it returns true
 bool checkOverlap() {
-
 	for (int x = 0; x < 4; ++x)	{
 		for (int y = 0; y < 4; ++y)	{
 			int newX = CurrentPiece.position.x - x, newY = CurrentPiece.position.y - y;
-			if(
+			if (
 				(
-					board[newX][newY] ||
+					board[newX][newY]       ||
 					newY + 1 > BOARD_HEIGHT ||
-					newX + 1 > BOARD_WIDTH ||
-					newX < 0 ||
-					newY < 0) && 
+					newX + 1 > BOARD_WIDTH  ||
+					newX < 0                ||
+					newY < 0
+					) && 
 				tetris[CurrentPiece.piece][CurrentPiece.rotation][x][y]
 				) {
 				return true;
-			}
 		}
 	}
+}
+return false;
+}
 
-	return false;
+//Logic for saving a piece to use later
+void savePiece() {
+	removePiece();
+	if(SavedPiece == -1) {
+		SavedPiece = CurrentPiece.piece;
+		CurrentPiece = getRandomPiece();
+	} else {
+		removePiece();
+		int temp = SavedPiece;
+		SavedPiece = CurrentPiece.piece;
+		CurrentPiece = getRandomPiece();
+		CurrentPiece.piece = temp;
+	}
+	addPiece();
 }
 
 int wrap(int min, int max, int current, int amount) {

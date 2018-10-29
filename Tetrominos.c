@@ -226,8 +226,15 @@ const char tetris[7][4][4][4] = {
 
 
 struct piece getRandomPiece() {
+	//https://gaming.stackexchange.com/questions/13057/tetris-difficulty
+	static short LastPiece = 0;
+	short NewPiece = rand() % 8;
+	if(NewPiece == LastPiece || NewPiece == 7) {
+		NewPiece = rand() % 7;
+	}
+	LastPiece = NewPiece;
 	struct piece p = {
-		.piece = rand() % 7,
+		.piece = NewPiece,
 		.rotation = ROTATION_0,
 		.position = {
 			.x = 4,

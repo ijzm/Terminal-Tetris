@@ -16,10 +16,9 @@ int removeLines();
 void moveHorizontal(short dir);
 bool moveDown();
 void moveBottom();
-bool checkDown();
 void rotatePiece();
 bool checkOverlap();
-
+void savePiece();
 int wrap(int, int, int, int);
 
 #endif
